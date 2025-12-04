@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/graphqlClient";
-import { 
-  CREAR_COMPROBADOR_ADMIN_MUTATION, 
+import {
+  CREAR_COMPROBADOR_ADMIN_MUTATION,
   CREATE_USUARIO_MUTATION,
-  GET_USUARIOS,
-  EDITAR_USUARIO_ADMIN_MUTATION
+  GET_USUARIOS
 } from "../api/adminQueries";
-import { FiUser, FiMail, FiPhone, FiLock, FiUserPlus, FiPlus, FiX, FiUsers, FiUserCheck } from "react-icons/fi";
+import { FiUser, FiMail, FiPhone, FiLock, FiUserPlus, FiUserCheck, FiPlus } from "react-icons/fi";
 
 const FormField = ({ label, children, icon: Icon, required = false }) => (
   <div className="space-y-1">
@@ -22,7 +21,7 @@ const FormField = ({ label, children, icon: Icon, required = false }) => (
 
 export default function AdminForms() {
   // Estado para controlar qué formulario está activo
-  const [activeTab, setActiveTab] = useState('existing'); // 'existing' o 'new'
+  const [activeTab, setActiveTab] = useState('comprobador-existing'); // 'comprobador-existing', 'comprobador-new'
   // Estados para usuario/comprobador
   const [uNombre, setUNombre] = useState("");
   const [uApellido, setUApellido] = useState("");
@@ -34,7 +33,7 @@ export default function AdminForms() {
   const [cCI, setCCI] = useState("");
   const [cNombreUsuario, setCNombreUsuario] = useState("");
   const [cCupos, setCCupos] = useState("");
-  
+
   // Estados generales
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
@@ -121,12 +120,12 @@ export default function AdminForms() {
     e.preventDefault();
     setMsg({ type: '', text: '' });
     setLoading(true);
-    
+
     try {
       if (!uPassword || uPassword.length < 6) {
         throw new Error("La contraseña debe tener al menos 6 caracteres.");
       }
-      
+
       const userVariables = {
         input: {
           nombre: uNombre,
@@ -153,11 +152,11 @@ export default function AdminForms() {
       };
 
       await client.request(CREAR_COMPROBADOR_ADMIN_MUTATION, compVariables);
-      
+
       showMessage('success', 'Usuario y comprobador creados correctamente');
       resetForm('comprobador');
       setTimeout(() => navigate("/comprobadores"), 1500);
-      
+
     } catch (err) {
       console.error(err);
       const errorMsg = err?.response?.errors?.[0]?.message || err.message || 'Error al crear el comprobador';
@@ -169,9 +168,9 @@ export default function AdminForms() {
 
   return (
     <div className="container mx-auto px-3 sm:px-4 md:p-6 max-w-7xl">
-      <div className="mb-4 sm:mb-6 md:mb-8">
+        <div className="mb-4 sm:mb-6 md:mb-8">
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2">Formularios Administrativos</h2>
-        <p className="text-gray-900 text-sm sm:text-base font-medium">Gestiona usuarios y comprobadores del sistema</p>
+        <p className="text-sm sm:text-base font-medium" style={{ color: activeTab === 'comprobador-new' ? '#2563eb' : activeTab.includes('comprobador') ? '#ea580c' : '#2563eb' }}>Gestiona comprobadores del sistema</p>
       </div>
 
       {/* Mensajes */}
@@ -189,36 +188,37 @@ export default function AdminForms() {
       <div className="bg-white rounded-xl shadow-lg mb-4 sm:mb-6 md:mb-8 border border-gray-100">
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px overflow-x-auto">
+            {/* Comprobador - Usuario Existente */}
             <button
-              onClick={() => setActiveTab('existing')}
-              className={`flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${
-                activeTab === 'existing'
-                  ? 'border-orange-500 text-gray-900 bg-orange-50'
-                  : 'border-transparent text-gray-900 hover:text-black hover:bg-gray-50'
-              }`}
+              onClick={() => setActiveTab('comprobador-existing')}
+              style={{ color: activeTab === 'comprobador-existing' ? '#c2410c' : '#374151' }}
+              className={`flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${activeTab === 'comprobador-existing'
+                ? 'border-orange-600 bg-orange-50'
+                : 'border-transparent hover:bg-gray-50'
+                }`}
             >
-              <FiUserCheck className="mr-1 sm:mr-2 flex-shrink-0" />
-              <span className="hidden xs:inline sm:inline">Usuario Existente</span>
-              <span className="xs:hidden sm:hidden">Existente</span>
+              <FiUserCheck className="mr-1 sm:mr-2 flex-shrink-0" style={{ color: activeTab === 'comprobador-existing' ? '#c2410c' : '#4b5563' }} />
+              <span>Comprobador - Usuario Existente</span>
             </button>
+            
+            {/* Comprobador - Nuevo Usuario */}
             <button
-              onClick={() => setActiveTab('new')}
-              className={`flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${
-                activeTab === 'new'
-                  ? 'border-blue-500 text-gray-900 bg-blue-50'
-                  : 'border-transparent text-gray-900 hover:text-black hover:bg-gray-50'
-              }`}
+              onClick={() => setActiveTab('comprobador-new')}
+              style={{ color: activeTab === 'comprobador-new' ? '#1d4ed8' : '#374151' }}
+              className={`flex items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-sm sm:text-base font-medium transition-colors duration-200 border-b-2 whitespace-nowrap ${activeTab === 'comprobador-new'
+                ? 'border-blue-600 bg-blue-50'
+                : 'border-transparent hover:bg-gray-50'
+                }`}
             >
-              <FiUserPlus className="mr-1 sm:mr-2 flex-shrink-0" />
-              <span className="hidden xs:inline sm:inline">Nuevo Usuario</span>
-              <span className="xs:hidden sm:hidden">Nuevo</span>
+              <FiUserPlus className="mr-1 sm:mr-2 flex-shrink-0" style={{ color: activeTab === 'comprobador-new' ? '#1d4ed8' : '#4b5563' }} />
+              <span>Comprobador - Nuevo Usuario</span>
             </button>
           </nav>
         </div>
       </div>
 
       {/* Contenido dinámico según tab activo */}
-      {activeTab === 'existing' ? (
+      {activeTab === 'comprobador-existing' ? (
         <div className="space-y-6">
           {/* Crear comprobador para usuario existente por correo */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 md:mb-8 border border-gray-100">
@@ -293,9 +293,8 @@ export default function AdminForms() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'comprobador-new' ? (
         <div className="space-y-6">
-
           {/* Formulario de Comprobador */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 mb-6 md:mb-8 border border-gray-100">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 md:p-6">
@@ -320,7 +319,7 @@ export default function AdminForms() {
                         required
                       />
                     </FormField>
-                    
+
                     <FormField label="Apellido" icon={FiUser} required>
                       <input
                         type="text"
@@ -331,7 +330,7 @@ export default function AdminForms() {
                         required
                       />
                     </FormField>
-                    
+
                     <FormField label="Teléfono" icon={FiPhone}>
                       <input
                         type="tel"
@@ -342,7 +341,7 @@ export default function AdminForms() {
                       />
                     </FormField>
                   </div>
-                  
+
                   <div className="space-y-4 md:space-y-6">
                     <h4 className="text-base font-semibold text-gray-700 border-b border-gray-200 pb-2">Cuenta y Acceso</h4>
                     <FormField label="Correo Electrónico" icon={FiMail} required>
@@ -355,7 +354,7 @@ export default function AdminForms() {
                         required
                       />
                     </FormField>
-                    
+
                     <FormField label="Contraseña" icon={FiLock} required>
                       <input
                         type="password"
@@ -369,7 +368,7 @@ export default function AdminForms() {
                     </FormField>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 pt-4 border-t border-gray-100">
                   <div className="space-y-4 md:space-y-6">
                     <h4 className="text-base font-semibold text-gray-700 border-b border-gray-200 pb-2">Configuración de Comprobador</h4>
@@ -383,7 +382,7 @@ export default function AdminForms() {
                         required
                       />
                     </FormField>
-                    
+
                     <FormField label="Nombre de Usuario (opcional)" icon={FiUser}>
                       <input
                         type="text"
@@ -394,7 +393,7 @@ export default function AdminForms() {
                       />
                     </FormField>
                   </div>
-                  
+
                   <div className="space-y-4 md:space-y-6">
                     <h4 className="text-base font-semibold text-gray-700 border-b border-gray-200 pb-2">Límites y Restricciones</h4>
                     <FormField label="Cupos Disponibles (opcional)" icon={FiUser}>
@@ -410,12 +409,12 @@ export default function AdminForms() {
                     </FormField>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => resetForm('comprobador')}
-                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition text-base font-medium min-h-[48px] w-full sm:w-auto"
+                    className="px-6 py-3 border border-gray-300 rounded-lg text-blue-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition text-base font-medium min-h-[48px] w-full sm:w-auto"
                     disabled={loading}
                   >
                     Limpiar Formulario
@@ -445,7 +444,7 @@ export default function AdminForms() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -49,7 +49,7 @@ export default function Login() {
       const token = data.login || data.Login || data.authenticate || data.signIn || data.token;
 
       if (token) {
-        login(token, []);
+        await login(token);
         navigate("/dashboard");
       } else {
         const serverMessage = lastError?.response?.errors?.[0]?.message;
@@ -65,7 +65,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50 px-4">
-      <div className="max-w-md w-full">
+      <div className="max-w-4xl w-full">
         <div className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
           <div className="flex flex-col md:flex-row">
             <div className="w-full md:w-1/2 p-8 bg-[color:var(--color-base)]">
@@ -116,11 +116,6 @@ export default function Login() {
             <div className="hidden md:block md:w-1/2 p-8 bg-[color:var(--color-secondary)] text-white">
               <h2 className="text-2xl font-bold mb-3">Bienvenido</h2>
               <p className="text-sm opacity-90">Gestiona usuarios, productos, ventas y comprobadores desde un único panel moderno y seguro.</p>
-
-              <div className="mt-6 grid gap-3">
-                <div className="bg-white/6 p-3 rounded-lg">Estadísticas rápidas</div>
-                <div className="bg-white/6 p-3 rounded-lg">Notificaciones</div>
-              </div>
             </div>
           </div>
         </div>

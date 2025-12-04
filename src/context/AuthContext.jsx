@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { client } from '../api/graphqlClient';
+import { GET_CURRENT_USER } from '../api/adminQueries';
 
 const AuthContext = createContext();
 
@@ -8,16 +10,43 @@ export function AuthProvider({ children }) {
 
   // Verificar si hay un token al cargar la aplicación
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setUser({ authenticated: true });
-    }
-    setLoading(false);
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Obtener información del usuario incluyendo roles
+          const userData = await client.request(GET_CURRENT_USER);
+          setUser({ 
+            authenticated: true, 
+            ...userData.currentUser,
+            roles: userData.currentUser.roles || []
+          });
+        } catch (error) {
+          console.error('Error verifying token:', error);
+          localStorage.removeItem('token');
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
-  const login = (token, roles = []) => {
+  const login = async (token) => {
     localStorage.setItem('token', token);
-    setUser({ authenticated: true, roles });
+    try {
+      // Obtener información del usuario después del login
+      const userData = await client.request(GET_CURRENT_USER);
+      setUser({ 
+        authenticated: true, 
+        ...userData.currentUser,
+        roles: userData.currentUser.roles || []
+      });
+    } catch (error) {
+      console.error('Error getting user data:', error);
+      setUser({ authenticated: true, roles: [] });
+    }
   };
 
   const logout = () => {
@@ -26,9 +55,10 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated = !!user;
+  const isAdmin = user?.roles?.includes('admin') || false;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, isAdmin, loading }}>
       {children}
     </AuthContext.Provider>
   );

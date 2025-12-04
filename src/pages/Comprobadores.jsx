@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { client } from "../api/graphqlClient";
-import { 
+import {
   GET_COMPROBADORES,
   ELIMINAR_COMPROBADOR_ADMIN_MUTATION,
   EDITAR_COMPROBADOR_ADMIN_MUTATION
@@ -75,13 +76,13 @@ export default function Comprobadores() {
 
       setComprobadores(prev => prev.map(c =>
         c.id === editing.id
-          ? { 
-              ...c,
-              nombreUsuario: editForm.nombreUsuario,
-              ci: editForm.ci,
-              cuposDisponibles: editForm.cuposDisponibles,
-              estaDisponible: editForm.cuposDisponibles > 0,
-            }
+          ? {
+            ...c,
+            nombreUsuario: editForm.nombreUsuario,
+            ci: editForm.ci,
+            cuposDisponibles: editForm.cuposDisponibles,
+            estaDisponible: editForm.cuposDisponibles > 0,
+          }
           : c
       ));
       setEditing(null);
@@ -163,11 +164,10 @@ export default function Comprobadores() {
                 <td className="p-3">{c.cuposDisponibles}</td>
                 <td className="p-3">
                   <span
-                    className={`px-2 py-1 rounded-full text-sm font-semibold ${
-                      c.estaDisponible
+                    className={`px-2 py-1 rounded-full text-sm font-semibold ${c.estaDisponible
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
-                    }`}
+                      }`}
                   >
                     {c.estaDisponible ? "Sí" : "No"}
                   </span>
@@ -194,7 +194,7 @@ export default function Comprobadores() {
         </table>
       </div>
 
-      {editing && (
+      {editing && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <h2 className="text-xl font-bold text-orange-600 mb-4">Editar Comprobador</h2>
@@ -248,7 +248,8 @@ export default function Comprobadores() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

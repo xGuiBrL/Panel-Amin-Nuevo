@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { client } from "../api/graphqlClient";
-import { GET_PRODUCTOS, EDITAR_PRODUCTO_ADMIN_MUTATION, ELIMINAR_PRODUCTO_ADMIN_MUTATION } from "../api/adminQueries";
+import { GET_PRODUCTOS, GET_PRODUCTORES, EDITAR_PRODUCTO_ADMIN_MUTATION, ELIMINAR_PRODUCTO_ADMIN_MUTATION } from "../api/adminQueries";
 import { FiEye } from "react-icons/fi";
 
 export default function Productos() {
   const [productos, setProductos] = useState([]);
+  const [productores, setProductores] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedProducto, setSelectedProducto] = useState(null);
@@ -12,6 +14,8 @@ export default function Productos() {
     nombre: "",
     descripcion: "",
     precioActual: "",
+    precioMayorista: "",
+    cantidadMinimaMayorista: "",
     unidadMedida: "",
     categoria: "",
     stock: "",
@@ -25,6 +29,14 @@ export default function Productos() {
       setError("");
       const data = await client.request(GET_PRODUCTOS);
       setProductos(data.productos || []);
+      
+      // Obtener productores y crear mapeo de ID a nombre
+      const productoresData = await client.request(GET_PRODUCTORES);
+      const productoresMap = {};
+      productoresData.productores.forEach(p => {
+        productoresMap[p.id] = p.nombreUsuario || `Productor ${p.id}`;
+      });
+      setProductores(productoresMap);
     } catch (error) {
       console.error("Error fetching productos:", error);
       setError(error.response?.errors?.[0]?.message || "Error al cargar productos");
@@ -50,6 +62,8 @@ export default function Productos() {
       nombre: p.nombre || "",
       descripcion: p.descripcion || "",
       precioActual: p.precioActual ?? "",
+      precioMayorista: p.precioMayorista ?? "",
+      cantidadMinimaMayorista: p.cantidadMinimaMayorista ?? "",
       unidadMedida: p.unidadMedida || "",
       categoria: p.categoria || "",
       stock: p.stock ?? "",
@@ -74,11 +88,11 @@ export default function Productos() {
         nombre: editForm.nombre || null,
         descripcion: editForm.descripcion || null,
         precioActual: editForm.precioActual !== "" ? Number(editForm.precioActual) : null,
+        precioMayorista: editForm.precioMayorista !== "" ? Number(editForm.precioMayorista) : null,
+        cantidadMinimaMayorista: editForm.cantidadMinimaMayorista !== "" ? Number(editForm.cantidadMinimaMayorista) : null,
         unidadMedida: editForm.unidadMedida || null,
         categoria: editForm.categoria || null,
         stock: editForm.stock !== "" ? Number(editForm.stock) : null,
-        precioMayorista: null,
-        cantidadMinimaMayorista: null,
         atributos: editForm.atributos && editForm.atributos.length ? editForm.atributos : null,
         imagenes: null,
         productorId: null
@@ -102,7 +116,7 @@ export default function Productos() {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
 
     try {
-      await client.request(ELIMINAR_PRODUCTO_ADMIN_MUTATION, { nombreProducto: selectedProducto.nombre });
+      await client.request(ELIMINAR_PRODUCTO_ADMIN_MUTATION, { productoId: selectedProducto.id });
       setProductos(prev => prev.filter(p => p.id !== selectedProducto.id));
       setSelectedProducto(null);
       await fetchProductos();
@@ -112,7 +126,12 @@ export default function Productos() {
     }
   };
 
-  if (loading) return <div className="p-6 text-center">Cargando productos...</div>;
+  if (loading) return (
+    <div className="p-6 text-center">
+      <h1 className="text-3xl font-bold text-orange-600 mb-6">Productos</h1>
+      <div>Cargando productos...</div>
+    </div>
+  );
   if (error) return <div className="p-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">{error}</div>;
 
   return (
@@ -123,7 +142,7 @@ export default function Productos() {
         <table className="w-full bg-white rounded-2xl shadow-xl overflow-hidden">
           <thead className="bg-orange-600 text-white">
             <tr>
-              {['ID', 'Nombre', 'Descripción', 'Categoría', 'Precio', 'Unidad', 'Stock', 'Atributos', 'Acciones'].map((t, i) => (
+              {['ID', 'Nombre', 'Descripción', 'Categoría', 'Precio', 'Unidad', 'Stock', 'Productor', 'Atributos', 'Acciones'].map((t, i) => (
                 <th key={i} className="p-3 text-left">{t}</th>
               ))}
             </tr>
@@ -143,23 +162,24 @@ export default function Productos() {
                 <td className="p-3 font-semibold">{p.precioActual ? formatPrice(p.precioActual) : "-"}</td>
                 <td className="p-3">{p.unidadMedida || "-"}</td>
                 <td className="p-3">{p.stock ?? "-"}</td>
+                <td className="p-3">{productores[p.productorId] || "-"}</td>
                 <td className="p-3">
                   {p.atributos?.length ? (
                     <div className="flex flex-wrap gap-1">
-                      {p.atributos.slice(0,2).map((a,i) => (
+                      {p.atributos.slice(0, 2).map((a, i) => (
                         <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{a}</span>
                       ))}
-                      {p.atributos.length > 2 && <span className="text-xs text-gray-500">+{p.atributos.length-2}</span>}
+                      {p.atributos.length > 2 && <span className="text-xs text-gray-500">+{p.atributos.length - 2}</span>}
                     </div>
                   ) : "-"}
                 </td>
-                <td className="p-3">
+                <td className="p-3 text-center">
                   <button
-                    className="inline-flex items-center justify-center text-orange-600 hover:text-orange-800 transition-colors duration-200"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800 transition-colors duration-200"
                     onClick={() => openDetalle(p)}
                     title="Ver detalles"
                   >
-                    <FiEye />
+                    <FiEye size={18} />
                   </button>
                 </td>
               </tr>
@@ -168,8 +188,8 @@ export default function Productos() {
         </table>
       </div>
 
-      {selectedProducto && (
-        <div 
+      {selectedProducto && createPortal(
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4"
           onClick={() => setSelectedProducto(null)}
         >
@@ -208,7 +228,7 @@ export default function Productos() {
                         <div key={i} className="bg-gray-100 rounded-md overflow-hidden h-20">
                           <img
                             src={img}
-                            alt={`${selectedProducto.nombre} ${i+2}`}
+                            alt={`${selectedProducto.nombre} ${i + 2}`}
                             className="w-full h-full object-cover"
                             onError={(e) => e.target.src = "https://via.placeholder.com/100x80?text=..."}
                           />
@@ -244,8 +264,8 @@ export default function Productos() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600 mt-2">
-                    {selectedProducto.stock !== undefined && selectedProducto.stock > 0 
-                      ? `${selectedProducto.stock} disponibles` 
+                    {selectedProducto.stock !== undefined && selectedProducto.stock > 0
+                      ? `${selectedProducto.stock} disponibles`
                       : 'Agotado'}
                   </div>
                 </div>
@@ -299,6 +319,7 @@ export default function Productos() {
                       <input
                         type="number"
                         name="stock"
+                        min="0"
                         value={editForm.stock}
                         onChange={handleEditChange}
                         className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
@@ -307,6 +328,32 @@ export default function Productos() {
                     <div>
                       <h4 className="text-sm font-medium text-gray-900">ID Productor</h4>
                       <p className="font-mono text-sm mt-1">{selectedProducto.productorId || "-"}</p>
+                      {selectedProducto.productorId && productores[selectedProducto.productorId] && (
+                        <p className="text-sm mt-1 text-gray-600">{productores[selectedProducto.productorId]}</p>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">Precio mayorista (BOB)</h4>
+                      <input
+                        type="number"
+                        name="precioMayorista"
+                        min="0"
+                        step="0.01"
+                        value={editForm.precioMayorista}
+                        onChange={handleEditChange}
+                        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">Cantidad mayorista</h4>
+                      <input
+                        type="number"
+                        name="cantidadMinimaMayorista"
+                        min="1"
+                        value={editForm.cantidadMinimaMayorista}
+                        onChange={handleEditChange}
+                        className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+                      />
                     </div>
                   </div>
 
@@ -367,6 +414,12 @@ export default function Productos() {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex justify-end space-x-3">
                     <button
+                      onClick={() => setSelectedProducto(null)}
+                      className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+                    >
+                      Cancelar
+                    </button>
+                    <button
                       onClick={saveProducto}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -392,7 +445,8 @@ export default function Productos() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

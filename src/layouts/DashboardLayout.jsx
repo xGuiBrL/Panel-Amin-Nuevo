@@ -21,7 +21,7 @@ export default function DashboardLayout() {
         <header className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-2 sm:py-3 bg-white border-b">
           <div className="flex items-center gap-2 sm:gap-3">
             <button className="md:hidden p-2 rounded bg-gray-100" onClick={()=>setCollapsed(false)}>☰</button>
-            <h2 className="text-base sm:text-lg font-semibold text-[color:var(--color-secondary)]">Panel Administrativo</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-orange-600">Panel Administrativo</h2>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">

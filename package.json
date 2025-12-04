@@ -2,7 +2,7 @@
   "name": "panel-admin-nuevo",
   "version": "0.1.0",
   "private": true,
-  "proxy": "https://e595ce7f8cd7.ngrok-free.app/graphql/",
+  "proxy": "https://mercadea.onrender.com/graphql/",
   "dependencies": {
     "@tanstack/react-query": "^5.90.11",
     "@testing-library/dom": "^10.4.1",

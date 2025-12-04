@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { client } from "../api/graphqlClient";
-import { GET_USUARIOS, EDITAR_USUARIO_ADMIN_MUTATION, GET_COMPROBADORES } from "../api/adminQueries";
+import { GET_USUARIOS, EDITAR_USUARIO_ADMIN_MUTATION, ELIMINAR_USUARIO_ADMIN_MUTATION, GET_COMPROBADORES, GET_PRODUCTORES, ELIMINAR_COMPROBADOR_ADMIN_MUTATION, ELIMINAR_PRODUCTOR_ADMIN_MUTATION } from "../api/adminQueries";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { FiEdit2 } from "react-icons/fi";
@@ -15,7 +16,8 @@ export default function Usuarios() {
     nombre: "",
     apellido: "",
     correo: "",
-    telefono: ""
+    telefono: "",
+    password: ""
   });
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -44,8 +46,8 @@ export default function Usuarios() {
         setUsuarioIdsConComprobador(idsSet);
       } catch (err) {
         console.error("Error fetching usuarios:", err);
-        if (err.response?.errors?.[0]?.extensions?.code === "AUTH_NOT_AUTHORIZED" || 
-            err.response?.errors?.[0]?.message?.includes("authorized")) {
+        if (err.response?.errors?.[0]?.extensions?.code === "AUTH_NOT_AUTHORIZED" ||
+          err.response?.errors?.[0]?.message?.includes("authorized")) {
           setError("No tienes autorización para acceder a este recurso. Serás redirigido al login.");
           setTimeout(() => {
             localStorage.removeItem('token');
@@ -58,7 +60,7 @@ export default function Usuarios() {
         setLoading(false);
       }
     };
-    
+
     fetchUsuarios();
   }, [isAuthenticated, navigate]);
 
@@ -68,7 +70,8 @@ export default function Usuarios() {
       nombre: u.nombre || "",
       apellido: u.apellido || "",
       correo: u.correo || "",
-      telefono: u.telefono || ""
+      telefono: u.telefono || "",
+      password: "" // No pre-llenar la contraseña por seguridad
     });
   };
 
@@ -94,18 +97,88 @@ export default function Usuarios() {
         nombre: editForm.nombre || null,
         apellido: editForm.apellido || null,
         correo: editForm.correo || null,
-        telefono: editForm.telefono || null
+        telefono: editForm.telefono || null,
+        password: editForm.password.trim() || null // Solo enviar si tiene contenido real
       };
+
+      console.log("Enviando variables:", { ...vars, password: vars.password ? '***' : null });
 
       const res = await client.request(EDITAR_USUARIO_ADMIN_MUTATION, vars);
       const updated = res.editarUsuarioAdmin;
 
       setUsuarios(prev => prev.map(u => (u.id === updated.id ? { ...u, ...updated } : u)));
       setEditing(null);
+
+      // Mensaje de éxito
+      alert(vars.password ? 'Usuario actualizado correctamente, incluyendo contraseña' : 'Usuario actualizado correctamente');
     } catch (err) {
       console.error("Error editando usuario:", err);
       const msg = err?.response?.errors?.[0]?.message || err.message || String(err);
       setError(msg);
+      alert(`Error: ${msg}`);
+    }
+  };
+
+  const handleDeleteUsuario = async (usuarioId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer y también eliminará sus registros de comprobador y/o productor si existen.')) {
+      return;
+    }
+
+    try {
+      // Primero, obtener comprobadores y productores para verificar si el usuario está registrado
+      const [comprobadoresData, productoresData] = await Promise.all([
+        client.request(GET_COMPROBADORES).catch(() => ({ comprobador: [] })),
+        client.request(GET_PRODUCTORES).catch(() => ({ productores: [] }))
+      ]);
+
+      // Buscar y eliminar comprobador asociado
+      const comprobador = (comprobadoresData.comprobador || []).find(
+        c => c.usuarioId === usuarioId
+      );
+      if (comprobador) {
+        try {
+          await client.request(ELIMINAR_COMPROBADOR_ADMIN_MUTATION, {
+            comprobadorId: comprobador.id
+          });
+          console.log(`Comprobador ${comprobador.id} eliminado`);
+        } catch (err) {
+          console.error("Error eliminando comprobador asociado:", err);
+        }
+      }
+
+      // Buscar y eliminar productor asociado
+      const productor = (productoresData.productores || []).find(
+        p => (p.usuarioId === usuarioId || p.idUsuario === usuarioId)
+      );
+      if (productor) {
+        try {
+          await client.request(ELIMINAR_PRODUCTOR_ADMIN_MUTATION, {
+            productorId: productor.id
+          });
+          console.log(`Productor ${productor.id} eliminado`);
+        } catch (err) {
+          console.error("Error eliminando productor asociado:", err);
+        }
+      }
+
+      // Finalmente, eliminar el usuario
+      await client.request(ELIMINAR_USUARIO_ADMIN_MUTATION, { usuarioId });
+      setUsuarios(prev => prev.filter(u => u.id !== usuarioId));
+
+      let mensaje = 'Usuario eliminado exitosamente';
+      if (comprobador && productor) {
+        mensaje += ' junto con sus registros de comprobador y productor';
+      } else if (comprobador) {
+        mensaje += ' junto con su registro de comprobador';
+      } else if (productor) {
+        mensaje += ' junto con su registro de productor';
+      }
+      alert(mensaje);
+
+    } catch (err) {
+      console.error("Error eliminando usuario:", err);
+      const msg = err?.response?.errors?.[0]?.message || err.message || String(err);
+      alert(`Error al eliminar el usuario: ${msg}`);
     }
   };
 
@@ -140,7 +213,7 @@ export default function Usuarios() {
           <table className="w-full bg-white rounded-2xl shadow-xl overflow-hidden">
             <thead className="bg-orange-600 text-white">
               <tr>
-                {["ID", "Nombre", "Correo", "Roles", "Teléfono", "Acciones"].map((t,i) => (
+                {["ID", "Nombre", "Correo", "Roles", "Teléfono", "Acciones"].map((t, i) => (
                   <th key={i} className="p-3 text-left">{t}</th>
                 ))}
               </tr>
@@ -164,13 +237,20 @@ export default function Usuarios() {
                     <td className="p-3">{u.correo}</td>
                     <td className="p-3">{rolesFiltrados.join(", ")}</td>
                     <td className="p-3">{u.telefono}</td>
-                    <td className="p-3">
+                    <td className="p-3 space-x-2">
                       <button
                         onClick={() => openEdit(u)}
-                        className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800"
+                        className="inline-flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
                         title="Editar usuario"
                       >
                         <FiEdit2 />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUsuario(u.id)}
+                        className="text-red-600 hover:text-red-800 transition-colors text-sm sm:text-base"
+                        title="Eliminar usuario"
+                      >
+                        🗑️
                       </button>
                     </td>
                   </tr>
@@ -181,7 +261,7 @@ export default function Usuarios() {
         </div>
       )}
 
-      {editing && (
+      {editing && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <h2 className="text-xl font-bold text-orange-600 mb-4">Editar Usuario</h2>
@@ -226,6 +306,18 @@ export default function Usuarios() {
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={editForm.password}
+                  onChange={handleChange}
+                  placeholder="Dejar vacío para no cambiar"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Solo completa este campo si deseas cambiar la contraseña</p>
+              </div>
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -243,7 +335,8 @@ export default function Usuarios() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

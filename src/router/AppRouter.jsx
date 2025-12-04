@@ -8,7 +8,9 @@ import Productos from "../pages/Productos";
 import Ventas from "../pages/Ventas";
 import Comprobadores from "../pages/Comprobadores";
 import AdminForms from "../pages/AdminForms";
+import Unauthorized from "../pages/Unauthorized";
 import PrivateRoute from "./PrivateRoute";
+import AdminRoute from "./AdminRoute";
 
 export default function AppRouter() {
   return (
@@ -16,7 +18,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<Login />} />
 
-        <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+        <Route element={<AdminRoute><DashboardLayout /></AdminRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/usuarios" element={<Usuarios />} />
           <Route path="/productores" element={<Productores />} />
@@ -26,6 +28,7 @@ export default function AppRouter() {
           <Route path="/admin-forms" element={<AdminForms />} />
         </Route>
         
+        <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

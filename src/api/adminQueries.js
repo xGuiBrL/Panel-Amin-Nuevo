@@ -47,6 +47,19 @@ export const INTROSPECTION_QUERY = `
   }
 `;
 
+export const GET_CURRENT_USER = `
+  query {
+    currentUser {
+      id
+      nombre
+      apellido
+      correo
+      roles
+      telefono
+    }
+  }
+`;
+
 export const GET_USUARIOS = `
   query {
     usuarios {
@@ -79,6 +92,8 @@ export const GET_PRODUCTOS = `
       nombre
       descripcion
       precioActual
+      precioMayorista
+      cantidadMinimaMayorista
       unidadMedida
       atributos
       imagenes
@@ -201,8 +216,8 @@ export const CREATE_COMPROBADOR_MUTATION = `
 `;
 
 export const ELIMINAR_PRODUCTO_ADMIN_MUTATION = `
-  mutation EliminarProductoAdmin($nombreProducto: String!) {
-    eliminarProductoAdmin(nombreProducto: $nombreProducto)
+  mutation EliminarProductoAdmin($productoId: String!) {
+    eliminarProductoAdmin(productoId: $productoId)
   }
 `;
 
@@ -225,8 +240,8 @@ export const ELIMINAR_COMPROBADOR_ADMIN_MUTATION = `
 `;
 
 export const EDITAR_USUARIO_ADMIN_MUTATION = `
-  mutation EditarUsuarioAdmin($usuarioId: String!, $nombre: String, $apellido: String, $correo: String, $telefono: String, $roles: [String!]) {
-    editarUsuarioAdmin(usuarioId: $usuarioId, nombre: $nombre, apellido: $apellido, correo: $correo, telefono: $telefono, roles: $roles) {
+  mutation EditarUsuarioAdmin($usuarioId: String!, $nombre: String, $apellido: String, $correo: String, $telefono: String, $roles: [String!], $password: String) {
+    editarUsuarioAdmin(usuarioId: $usuarioId, nombre: $nombre, apellido: $apellido, correo: $correo, telefono: $telefono, roles: $roles, password: $password) {
       id
       nombre
       apellido
@@ -282,53 +297,38 @@ export const CREAR_COMPROBADOR_ADMIN_MUTATION = `
 
 // Consulta para crear un productor
 export const CREAR_PRODUCTOR_ADMIN_MUTATION = `
-  mutation CrearProductorAdmin($usuarioId: String!, $nombreUsuario: String!, $direccion: String, $nit: String, $telefono: String) {
+  mutation CrearProductorAdmin($usuarioId: String!, $nombreUsuario: String!, $nit: String) {
     crearProductorAdmin(
       usuarioId: $usuarioId
       nombreUsuario: $nombreUsuario
-      direccion: $direccion
       nit: $nit
-      telefono: $telefono
     ) {
       id
-      usuarioId
+      idUsuario
       nombreUsuario
-      direccion
       nit
-      telefono
     }
   }
 `;
 
-// Consulta para editar un productor
-export const EDITAR_PRODUCTOR_ADMIN_MUTATION = `
-  mutation EditarProductorAdmin(
-    $productorId: String!
-    $nombreUsuario: String
-    $direccion: String
-    $nit: String
-    $telefono: String
-  ) {
-    editarProductorAdmin(
-      productorId: $productorId
-      nombreUsuario: $nombreUsuario
-      direccion: $direccion
-      nit: $nit
-      telefono: $telefono
-    ) {
-      id
-      usuarioId
-      nombreUsuario
-      direccion
-      nit
-      telefono
-    }
-  }
-`;
+
 
 // Consulta para eliminar un productor
 export const ELIMINAR_PRODUCTOR_ADMIN_MUTATION = `
   mutation EliminarProductorAdmin($productorId: String!) {
     eliminarProductorAdmin(productorId: $productorId)
+  }
+`;
+export const EDITAR_PRODUCTOR_ADMIN_MUTATION = `
+  mutation EditarProductorAdmin($productorId: String!, $nombreUsuario: String, $direccion: String, $nit: String, $numeroCuenta: String, $banco: String, $usuarioId: String) {
+    editarProductorAdmin(productorId: $productorId, nombreUsuario: $nombreUsuario, direccion: $direccion, nit: $nit, numeroCuenta: $numeroCuenta, banco: $banco, usuarioId: $usuarioId) {
+      id
+      nombreUsuario
+      direccion
+      nit
+      numeroCuenta
+      banco
+      idUsuario
+    }
   }
 `;
